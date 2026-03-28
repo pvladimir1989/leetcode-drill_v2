@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a0a0c">
+<title>leetcode.drill</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { background: #0a0a0c; overflow-x: hidden; }
+  @media(max-width:639px) { input { font-size: 16px !important; } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script type="text/babel">
+const { useState, useMemo, useCallback, useRef } = React;
+
+const C = [
+  { name:"Два указателя", icon:"⇄", problems:[
+    { t:"Reverse String", d:"easy", id:344, desc:"Разверни массив символов in-place. Два указателя с краёв, swap к центру.",
+      python:`def reverseString(s):\n    left, right = 0, len(s) - 1\n    while left < right:\n        s[left], s[right] = s[right], s[left]\n        left += 1\n        right -= 1`,
+      go:`func reverseString(s []byte) {\n    left, right := 0, len(s)-1\n    for left < right {\n        s[left], s[right] = s[right], s[left]\n        left++\n        right--\n    }\n}`,
+      rust:`fn reverse_string(s: &mut Vec<char>) {\n    let (mut l, mut r) = (0, s.len() - 1);\n    while l < r {\n        s.swap(l, r);\n        l += 1;\n        r -= 1;\n    }\n}`,
+      ts:`function reverseString(s: string[]): void {\n    let left = 0, right = s.length - 1;\n    while (left < right) {\n        [s[left], s[right]] = [s[right], s[left]];\n        left++;\n        right--;\n    }\n}` },
+    { t:"Valid Palindrome", d:"easy", id:125, desc:"Палиндром ли строка? Только буквы/цифры, игнорируй регистр. Два указателя с краёв.",
+      python:`def isPalindrome(s):\n    s = ''.join(c.lower() for c in s if c.isalnum())\n    left, right = 0, len(s) - 1\n    while left < right:\n        if s[left] != s[right]: return False\n        left += 1\n        right -= 1\n    return True`,
+      go:`func isPalindrome(s string) bool {\n    var cl []byte\n    for _, c := range s {\n        if unicode.IsLetter(c) || unicode.IsDigit(c) {\n            cl = append(cl, byte(unicode.ToLower(c)))\n        }\n    }\n    l, r := 0, len(cl)-1\n    for l < r {\n        if cl[l] != cl[r] { return false }\n        l++; r--\n    }\n    return true\n}`,
+      rust:`fn is_palindrome(s: String) -> bool {\n    let ch: Vec<char> = s.chars().filter(|c| c.is_alphanumeric())\n        .map(|c| c.to_lowercase().next().unwrap()).collect();\n    let (mut l, mut r) = (0, ch.len().saturating_sub(1));\n    while l < r {\n        if ch[l] != ch[r] { return false; }\n        l += 1; r -= 1;\n    }\n    true\n}`,
+      ts:`function isPalindrome(s: string): boolean {\n    const c = s.toLowerCase().replace(/[^a-z0-9]/g, '');\n    let l = 0, r = c.length - 1;\n    while (l < r) {\n        if (c[l] !== c[r]) return false;\n        l++; r--;\n    }\n    return true;\n}` },
+    { t:"Merge Sorted Array", d:"easy", id:88, desc:"Слей два отсортированных массива. Заполняй nums1 с конца справа налево.",
+      python:`def merge(nums1, m, nums2, n):\n    i, j, k = m-1, n-1, m+n-1\n    while j >= 0:\n        if i >= 0 and nums1[i] > nums2[j]:\n            nums1[k] = nums1[i]; i -= 1\n        else:\n            nums1[k] = nums2[j]; j -= 1\n        k -= 1`,
+      go:`func merge(nums1 []int, m int, nums2 []int, n int) {\n    i, j, k := m-1, n-1, m+n-1\n    for j >= 0 {\n        if i >= 0 && nums1[i] > nums2[j] {\n            nums1[k] = nums1[i]; i--\n        } else {\n            nums1[k] = nums2[j]; j--\n        }\n        k--\n    }\n}`,
+      rust:`fn merge(nums1: &mut Vec<i32>, m: i32, nums2: &mut Vec<i32>, n: i32) {\n    let (mut i, mut j, mut k) = (m as i64-1, n as i64-1, (m+n) as i64-1);\n    while j >= 0 {\n        if i >= 0 && nums1[i as usize] > nums2[j as usize] {\n            nums1[k as usize] = nums1[i as usize]; i -= 1;\n        } else {\n            nums1[k as usize] = nums2[j as usize]; j -= 1;\n        }\n        k -= 1;\n    }\n}`,
+      ts:`function merge(nums1: number[], m: number, nums2: number[], n: number): void {\n    let i = m-1, j = n-1, k = m+n-1;\n    while (j >= 0) {\n        if (i >= 0 && nums1[i] > nums2[j]) nums1[k--] = nums1[i--];\n        else nums1[k--] = nums2[j--];\n    }\n}` },
+    { t:"Move Zeroes", d:"easy", id:283, desc:"Перемести нули в конец, сохраняя порядок. Slow — позиция записи ненулевых.",
+      python:`def moveZeroes(nums):\n    slow = 0\n    for fast in range(len(nums)):\n        if nums[fast] != 0:\n            nums[slow], nums[fast] = nums[fast], nums[slow]\n            slow += 1`,
+      go:`func moveZeroes(nums []int) {\n    slow := 0\n    for fast := 0; fast < len(nums); fast++ {\n        if nums[fast] != 0 {\n            nums[slow], nums[fast] = nums[fast], nums[slow]\n            slow++\n        }\n    }\n}`,
+      rust:`fn move_zeroes(nums: &mut Vec<i32>) {\n    let mut slow = 0;\n    for fast in 0..nums.len() {\n        if nums[fast] != 0 {\n            nums.swap(slow, fast);\n            slow += 1;\n        }\n    }\n}`,
+      ts:`function moveZeroes(nums: number[]): void {\n    let slow = 0;\n    for (let fast = 0; fast < nums.length; fast++) {\n        if (nums[fast] !== 0) {\n            [nums[slow], nums[fast]] = [nums[fast], nums[slow]];\n            slow++;\n        }\n    }\n}` },
+    { t:"Two Sum II", d:"medium", id:167, desc:"Отсортированный массив. Два указателя: сумма мала — left++, велика — right--.",
+      python:`def twoSum(numbers, target):\n    left, right = 0, len(numbers) - 1\n    while left < right:\n        s = numbers[left] + numbers[right]\n        if s == target: return [left+1, right+1]\n        elif s < target: left += 1\n        else: right -= 1`,
+      go:`func twoSum(numbers []int, target int) []int {\n    l, r := 0, len(numbers)-1\n    for l < r {\n        s := numbers[l] + numbers[r]\n        if s == target { return []int{l+1, r+1} }\n        if s < target { l++ } else { r-- }\n    }\n    return nil\n}`,
+      rust:`fn two_sum(numbers: Vec<i32>, target: i32) -> Vec<i32> {\n    let (mut l, mut r) = (0, numbers.len()-1);\n    while l < r {\n        let s = numbers[l] + numbers[r];\n        if s == target { return vec![(l+1) as i32, (r+1) as i32]; }\n        if s < target { l += 1; } else { r -= 1; }\n    }\n    vec![]\n}`,
+      ts:`function twoSum(numbers: number[], target: number): number[] {\n    let l = 0, r = numbers.length - 1;\n    while (l < r) {\n        const s = numbers[l] + numbers[r];\n        if (s === target) return [l+1, r+1];\n        if (s < target) l++; else r--;\n    }\n    return [];\n}` },
+    { t:"3Sum", d:"medium", id:15, desc:"Тройки с суммой 0. Сортируй, фиксируй i, два указателя для остатка. Пропускай дубли.",
+      python:`def threeSum(nums):\n    nums.sort(); result = []\n    for i in range(len(nums)-2):\n        if i > 0 and nums[i] == nums[i-1]: continue\n        l, r = i+1, len(nums)-1\n        while l < r:\n            s = nums[i]+nums[l]+nums[r]\n            if s == 0:\n                result.append([nums[i],nums[l],nums[r]])\n                while l<r and nums[l]==nums[l+1]: l+=1\n                while l<r and nums[r]==nums[r-1]: r-=1\n                l+=1; r-=1\n            elif s < 0: l+=1\n            else: r-=1\n    return result`,
+      go:`func threeSum(nums []int) [][]int {\n    sort.Ints(nums)\n    var res [][]int\n    for i := 0; i < len(nums)-2; i++ {\n        if i > 0 && nums[i] == nums[i-1] { continue }\n        l, r := i+1, len(nums)-1\n        for l < r {\n            s := nums[i]+nums[l]+nums[r]\n            if s == 0 {\n                res = append(res, []int{nums[i],nums[l],nums[r]})\n                for l<r && nums[l]==nums[l+1] { l++ }\n                for l<r && nums[r]==nums[r-1] { r-- }\n                l++; r--\n            } else if s < 0 { l++ } else { r-- }\n        }\n    }\n    return res\n}`,
+      rust:`fn three_sum(mut nums: Vec<i32>) -> Vec<Vec<i32>> {\n    nums.sort(); let mut res = vec![];\n    for i in 0..nums.len().saturating_sub(2) {\n        if i > 0 && nums[i] == nums[i-1] { continue; }\n        let (mut l, mut r) = (i+1, nums.len()-1);\n        while l < r {\n            let s = nums[i]+nums[l]+nums[r];\n            if s == 0 {\n                res.push(vec![nums[i],nums[l],nums[r]]);\n                while l<r && nums[l]==nums[l+1] { l+=1; }\n                while l<r && nums[r]==nums[r-1] { r-=1; }\n                l+=1; r-=1;\n            } else if s < 0 { l+=1; } else { r-=1; }\n        }\n    }\n    res\n}`,
+      ts:`function threeSum(nums: number[]): number[][] {\n    nums.sort((a,b) => a-b); const res: number[][] = [];\n    for (let i = 0; i < nums.length-2; i++) {\n        if (i > 0 && nums[i] === nums[i-1]) continue;\n        let l = i+1, r = nums.length-1;\n        while (l < r) {\n            const s = nums[i]+nums[l]+nums[r];\n            if (s === 0) {\n                res.push([nums[i],nums[l],nums[r]]);\n                while (l<r && nums[l]===nums[l+1]) l++;\n                while (l<r && nums[r]===nums[r-1]) r--;\n                l++; r--;\n            } else if (s < 0) l++; else r--;\n        }\n    }\n    return res;\n}` },
+    { t:"Container With Most Water", d:"medium", id:11, desc:"Два указателя с краёв. Площадь = min(h[l],h[r])*(r-l). Двигай короткую сторону.",
+      python:`def maxArea(height):\n    l, r = 0, len(height)-1\n    mx = 0\n    while l < r:\n        mx = max(mx, min(height[l],height[r])*(r-l))\n        if height[l] < height[r]: l += 1\n        else: r -= 1\n    return mx`,
+      go:`func maxArea(height []int) int {\n    l, r, mx := 0, len(height)-1, 0\n    for l < r {\n        h := min(height[l], height[r])\n        if (r-l)*h > mx { mx = (r-l)*h }\n        if height[l] < height[r] { l++ } else { r-- }\n    }\n    return mx\n}`,
+      rust:`fn max_area(height: Vec<i32>) -> i32 {\n    let (mut l, mut r, mut mx) = (0, height.len()-1, 0);\n    while l < r {\n        let h = height[l].min(height[r]);\n        mx = mx.max((r-l) as i32 * h);\n        if height[l] < height[r] { l+=1; } else { r-=1; }\n    }\n    mx\n}`,
+      ts:`function maxArea(height: number[]): number {\n    let l = 0, r = height.length-1, mx = 0;\n    while (l < r) {\n        mx = Math.max(mx, Math.min(height[l],height[r])*(r-l));\n        if (height[l] < height[r]) l++; else r--;\n    }\n    return mx;\n}` },
+  ]},
+  { name:"Хеш-таблицы", icon:"#", problems:[
+    { t:"Two Sum", d:"easy", id:1, desc:"Найди два числа с суммой target. Хеш: число→индекс. complement = target-num.",
+      python:`def twoSum(nums, target):\n    seen = {}\n    for i, num in enumerate(nums):\n        if target-num in seen: return [seen[target-num], i]\n        seen[num] = i`,
+      go:`func twoSum(nums []int, target int) []int {\n    seen := map[int]int{}\n    for i, num := range nums {\n        if j, ok := seen[target-num]; ok { return []int{j, i} }\n        seen[num] = i\n    }\n    return nil\n}`,
+      rust:`fn two_sum(nums: Vec<i32>, target: i32) -> Vec<i32> {\n    use std::collections::HashMap;\n    let mut seen = HashMap::new();\n    for (i, &num) in nums.iter().enumerate() {\n        if let Some(&j) = seen.get(&(target-num)) {\n            return vec![j as i32, i as i32];\n        }\n        seen.insert(num, i);\n    }\n    vec![]\n}`,
+      ts:`function twoSum(nums: number[], target: number): number[] {\n    const seen = new Map<number, number>();\n    for (let i = 0; i < nums.length; i++) {\n        if (seen.has(target-nums[i])) return [seen.get(target-nums[i])!, i];\n        seen.set(nums[i], i);\n    }\n    return [];\n}` },
+    { t:"Valid Anagram", d:"easy", id:242, desc:"Анаграмма? Подсчитай частоты букв в s, вычти частоты из t. Все должны быть 0.",
+      python:`def isAnagram(s, t):\n    if len(s) != len(t): return False\n    count = {}\n    for c in s: count[c] = count.get(c,0)+1\n    for c in t:\n        count[c] = count.get(c,0)-1\n        if count[c] < 0: return False\n    return True`,
+      go:`func isAnagram(s string, t string) bool {\n    if len(s) != len(t) { return false }\n    count := [26]int{}\n    for i := 0; i < len(s); i++ {\n        count[s[i]-'a']++\n        count[t[i]-'a']--\n    }\n    for _, c := range count { if c != 0 { return false } }\n    return true\n}`,
+      rust:`fn is_anagram(s: String, t: String) -> bool {\n    if s.len() != t.len() { return false; }\n    let mut count = [0i32; 26];\n    for (a, b) in s.bytes().zip(t.bytes()) {\n        count[(a-b'a') as usize] += 1;\n        count[(b-b'a') as usize] -= 1;\n    }\n    count.iter().all(|&c| c == 0)\n}`,
+      ts:`function isAnagram(s: string, t: string): boolean {\n    if (s.length !== t.length) return false;\n    const count: Record<string,number> = {};\n    for (const c of s) count[c] = (count[c]||0)+1;\n    for (const c of t) {\n        count[c] = (count[c]||0)-1;\n        if (count[c] < 0) return false;\n    }\n    return true;\n}` },
+    { t:"Group Anagrams", d:"medium", id:49, desc:"Группируй по анаграммам. Ключ = sorted(word). Словарь ключ → список.",
+      python:`def groupAnagrams(strs):\n    groups = {}\n    for s in strs:\n        key = ''.join(sorted(s))\n        groups.setdefault(key, []).append(s)\n    return list(groups.values())`,
+      go:`func groupAnagrams(strs []string) [][]string {\n    groups := map[string][]string{}\n    for _, s := range strs {\n        bs := []byte(s)\n        sort.Slice(bs, func(i,j int) bool { return bs[i]<bs[j] })\n        groups[string(bs)] = append(groups[string(bs)], s)\n    }\n    res := make([][]string, 0, len(groups))\n    for _, v := range groups { res = append(res, v) }\n    return res\n}`,
+      rust:`fn group_anagrams(strs: Vec<String>) -> Vec<Vec<String>> {\n    use std::collections::HashMap;\n    let mut groups: HashMap<String, Vec<String>> = HashMap::new();\n    for s in strs {\n        let mut key: Vec<u8> = s.bytes().collect();\n        key.sort();\n        groups.entry(String::from_utf8(key).unwrap()).or_default().push(s);\n    }\n    groups.into_values().collect()\n}`,
+      ts:`function groupAnagrams(strs: string[]): string[][] {\n    const groups = new Map<string, string[]>();\n    for (const s of strs) {\n        const key = s.split('').sort().join('');\n        if (!groups.has(key)) groups.set(key, []);\n        groups.get(key)!.push(s);\n    }\n    return [...groups.values()];\n}` },
+  ]},
+  { name:"Бинарный поиск", icon:"⟐", problems:[
+    { t:"Binary Search", d:"easy", id:704, desc:"left ≤ right. mid = (l+r)/2. Равно — нашли. Меньше — left=mid+1. Больше — right=mid-1.",
+      python:`def search(nums, target):\n    l, r = 0, len(nums)-1\n    while l <= r:\n        mid = (l+r)//2\n        if nums[mid] == target: return mid\n        elif nums[mid] < target: l = mid+1\n        else: r = mid-1\n    return -1`,
+      go:`func search(nums []int, target int) int {\n    l, r := 0, len(nums)-1\n    for l <= r {\n        mid := (l+r)/2\n        if nums[mid] == target { return mid }\n        if nums[mid] < target { l = mid+1 } else { r = mid-1 }\n    }\n    return -1\n}`,
+      rust:`fn search(nums: Vec<i32>, target: i32) -> i32 {\n    let (mut l, mut r) = (0i32, nums.len() as i32 - 1);\n    while l <= r {\n        let mid = (l+r)/2;\n        if nums[mid as usize] == target { return mid; }\n        if nums[mid as usize] < target { l = mid+1; } else { r = mid-1; }\n    }\n    -1\n}`,
+      ts:`function search(nums: number[], target: number): number {\n    let l = 0, r = nums.length-1;\n    while (l <= r) {\n        const mid = (l+r) >> 1;\n        if (nums[mid] === target) return mid;\n        if (nums[mid] < target) l = mid+1; else r = mid-1;\n    }\n    return -1;\n}` },
+    { t:"Search in Rotated Sorted Array", d:"medium", id:33, desc:"Повернутый массив. Определи отсортированную половину, ищи target в ней.",
+      python:`def search(nums, target):\n    l, r = 0, len(nums)-1\n    while l <= r:\n        mid = (l+r)//2\n        if nums[mid] == target: return mid\n        if nums[l] <= nums[mid]:\n            if nums[l] <= target < nums[mid]: r = mid-1\n            else: l = mid+1\n        else:\n            if nums[mid] < target <= nums[r]: l = mid+1\n            else: r = mid-1\n    return -1`,
+      go:`func search(nums []int, target int) int {\n    l, r := 0, len(nums)-1\n    for l <= r {\n        mid := (l+r)/2\n        if nums[mid] == target { return mid }\n        if nums[l] <= nums[mid] {\n            if nums[l] <= target && target < nums[mid] { r = mid-1 } else { l = mid+1 }\n        } else {\n            if nums[mid] < target && target <= nums[r] { l = mid+1 } else { r = mid-1 }\n        }\n    }\n    return -1\n}`,
+      rust:`fn search(nums: Vec<i32>, target: i32) -> i32 {\n    let (mut l, mut r) = (0i32, nums.len() as i32 - 1);\n    while l <= r {\n        let mid = (l+r)/2;\n        let m = mid as usize;\n        if nums[m] == target { return mid; }\n        if nums[l as usize] <= nums[m] {\n            if nums[l as usize] <= target && target < nums[m] { r=mid-1; } else { l=mid+1; }\n        } else {\n            if nums[m] < target && target <= nums[r as usize] { l=mid+1; } else { r=mid-1; }\n        }\n    }\n    -1\n}`,
+      ts:`function search(nums: number[], target: number): number {\n    let l = 0, r = nums.length-1;\n    while (l <= r) {\n        const mid = (l+r) >> 1;\n        if (nums[mid] === target) return mid;\n        if (nums[l] <= nums[mid]) {\n            if (nums[l] <= target && target < nums[mid]) r = mid-1; else l = mid+1;\n        } else {\n            if (nums[mid] < target && target <= nums[r]) l = mid+1; else r = mid-1;\n        }\n    }\n    return -1;\n}` },
+  ]},
+  { name:"Связные списки", icon:"⟶", problems:[
+    { t:"Reverse Linked List", d:"easy", id:206, desc:"prev, curr, next. На каждом шаге: curr.next = prev, сдвигай вперёд.",
+      python:`def reverseList(head):\n    prev = None\n    curr = head\n    while curr:\n        nxt = curr.next\n        curr.next = prev\n        prev = curr\n        curr = nxt\n    return prev`,
+      go:`func reverseList(head *ListNode) *ListNode {\n    var prev *ListNode\n    curr := head\n    for curr != nil {\n        nxt := curr.Next\n        curr.Next = prev\n        prev = curr\n        curr = nxt\n    }\n    return prev\n}`,
+      rust:`fn reverse_list(head: Option<Box<ListNode>>) -> Option<Box<ListNode>> {\n    let (mut prev, mut curr) = (None, head);\n    while let Some(mut node) = curr {\n        curr = node.next.take();\n        node.next = prev;\n        prev = Some(node);\n    }\n    prev\n}`,
+      ts:`function reverseList(head: ListNode | null): ListNode | null {\n    let prev: ListNode | null = null, curr = head;\n    while (curr) {\n        const nxt = curr.next;\n        curr.next = prev;\n        prev = curr;\n        curr = nxt;\n    }\n    return prev;\n}` },
+    { t:"Linked List Cycle", d:"easy", id:141, desc:"Floyd: slow +1, fast +2. Встретились — цикл.",
+      python:`def hasCycle(head):\n    slow = fast = head\n    while fast and fast.next:\n        slow = slow.next\n        fast = fast.next.next\n        if slow == fast: return True\n    return False`,
+      go:`func hasCycle(head *ListNode) bool {\n    slow, fast := head, head\n    for fast != nil && fast.Next != nil {\n        slow = slow.Next\n        fast = fast.Next.Next\n        if slow == fast { return true }\n    }\n    return false\n}`,
+      rust:`// Safe Rust не позволяет цикл через Box. Используем raw pointers.\nfn has_cycle(head: Option<Box<ListNode>>) -> bool {\n    // Обычно решается через HashSet<*const ListNode>\n    false\n}`,
+      ts:`function hasCycle(head: ListNode | null): boolean {\n    let slow = head, fast = head;\n    while (fast && fast.next) {\n        slow = slow!.next;\n        fast = fast.next.next;\n        if (slow === fast) return true;\n    }\n    return false;\n}` },
+    { t:"Merge Two Sorted Lists", d:"easy", id:21, desc:"Dummy-узел, сравнивай головы, цепляй меньший. В конце — остаток.",
+      python:`def mergeTwoLists(l1, l2):\n    dummy = ListNode(0); curr = dummy\n    while l1 and l2:\n        if l1.val <= l2.val:\n            curr.next = l1; l1 = l1.next\n        else:\n            curr.next = l2; l2 = l2.next\n        curr = curr.next\n    curr.next = l1 or l2\n    return dummy.next`,
+      go:`func mergeTwoLists(l1 *ListNode, l2 *ListNode) *ListNode {\n    dummy := &ListNode{}\n    curr := dummy\n    for l1 != nil && l2 != nil {\n        if l1.Val <= l2.Val {\n            curr.Next = l1; l1 = l1.Next\n        } else {\n            curr.Next = l2; l2 = l2.Next\n        }\n        curr = curr.Next\n    }\n    if l1 != nil { curr.Next = l1 } else { curr.Next = l2 }\n    return dummy.Next\n}`,
+      rust:`fn merge_two_lists(l1: Option<Box<ListNode>>, l2: Option<Box<ListNode>>) -> Option<Box<ListNode>> {\n    match (l1, l2) {\n        (None, r) => r, (l, None) => l,\n        (Some(mut a), Some(mut b)) => {\n            if a.val <= b.val {\n                a.next = merge_two_lists(a.next, Some(b)); Some(a)\n            } else {\n                b.next = merge_two_lists(Some(a), b.next); Some(b)\n            }\n        }\n    }\n}`,
+      ts:`function mergeTwoLists(l1: ListNode|null, l2: ListNode|null): ListNode|null {\n    const dummy = new ListNode(0); let curr = dummy;\n    while (l1 && l2) {\n        if (l1.val <= l2.val) { curr.next = l1; l1 = l1.next; }\n        else { curr.next = l2; l2 = l2.next; }\n        curr = curr.next;\n    }\n    curr.next = l1 || l2;\n    return dummy.next;\n}` },
+  ]},
+  { name:"Деревья", icon:"🌳", problems:[
+    { t:"Maximum Depth of Binary Tree", d:"easy", id:104, desc:"Рекурсия: 1 + max(left, right). База: null → 0.",
+      python:`def maxDepth(root):\n    if not root: return 0\n    return 1 + max(maxDepth(root.left), maxDepth(root.right))`,
+      go:`func maxDepth(root *TreeNode) int {\n    if root == nil { return 0 }\n    l, r := maxDepth(root.Left), maxDepth(root.Right)\n    if l > r { return 1+l }\n    return 1+r\n}`,
+      rust:`fn max_depth(root: Option<Rc<RefCell<TreeNode>>>) -> i32 {\n    match root {\n        None => 0,\n        Some(n) => {\n            let n = n.borrow();\n            1 + max_depth(n.left.clone()).max(max_depth(n.right.clone()))\n        }\n    }\n}`,
+      ts:`function maxDepth(root: TreeNode | null): number {\n    if (!root) return 0;\n    return 1 + Math.max(maxDepth(root.left), maxDepth(root.right));\n}` },
+    { t:"Validate BST", d:"medium", id:98, desc:"Рекурсия с low/high. Узел в (low, high). Лево: high=val, право: low=val.",
+      python:`def isValidBST(root):\n    def check(node, lo, hi):\n        if not node: return True\n        if node.val <= lo or node.val >= hi: return False\n        return check(node.left, lo, node.val) and check(node.right, node.val, hi)\n    return check(root, float('-inf'), float('inf'))`,
+      go:`func isValidBST(root *TreeNode) bool {\n    var check func(*TreeNode, int, int) bool\n    check = func(n *TreeNode, lo, hi int) bool {\n        if n == nil { return true }\n        if n.Val <= lo || n.Val >= hi { return false }\n        return check(n.Left, lo, n.Val) && check(n.Right, n.Val, hi)\n    }\n    return check(root, -1<<63, 1<<63-1)\n}`,
+      rust:`fn is_valid_bst(root: Option<Rc<RefCell<TreeNode>>>) -> bool {\n    fn check(n: &Option<Rc<RefCell<TreeNode>>>, lo: i64, hi: i64) -> bool {\n        match n {\n            None => true,\n            Some(node) => {\n                let v = node.borrow().val as i64;\n                v > lo && v < hi\n                    && check(&node.borrow().left, lo, v)\n                    && check(&node.borrow().right, v, hi)\n            }\n        }\n    }\n    check(&root, i64::MIN, i64::MAX)\n}`,
+      ts:`function isValidBST(root: TreeNode | null): boolean {\n    const check = (n: TreeNode|null, lo: number, hi: number): boolean => {\n        if (!n) return true;\n        if (n.val <= lo || n.val >= hi) return false;\n        return check(n.left, lo, n.val) && check(n.right, n.val, hi);\n    };\n    return check(root, -Infinity, Infinity);\n}` },
+  ]},
+  { name:"Стеки", icon:"⊞", problems:[
+    { t:"Valid Parentheses", d:"easy", id:20, desc:"Стек: открывающая — push. Закрывающая — pop, проверь пару.",
+      python:`def isValid(s):\n    stack = []\n    m = {')':'(', '}':'{', ']':'['}\n    for c in s:\n        if c in m:\n            if not stack or stack.pop() != m[c]: return False\n        else: stack.append(c)\n    return not stack`,
+      go:`func isValid(s string) bool {\n    stack := []byte{}\n    m := map[byte]byte{')':'(', '}':'{', ']':'['}\n    for i := 0; i < len(s); i++ {\n        if match, ok := m[s[i]]; ok {\n            if len(stack)==0 || stack[len(stack)-1]!=match { return false }\n            stack = stack[:len(stack)-1]\n        } else { stack = append(stack, s[i]) }\n    }\n    return len(stack) == 0\n}`,
+      rust:`fn is_valid(s: String) -> bool {\n    let mut stack = vec![];\n    for ch in s.chars() {\n        match ch {\n            '('|'{'|'[' => stack.push(ch),\n            ')' => { if stack.pop() != Some('(') { return false; } }\n            '}' => { if stack.pop() != Some('{') { return false; } }\n            ']' => { if stack.pop() != Some('[') { return false; } }\n            _ => {}\n        }\n    }\n    stack.is_empty()\n}`,
+      ts:`function isValid(s: string): boolean {\n    const stack: string[] = [];\n    const map: Record<string,string> = {')':'(', '}':'{', ']':'['};\n    for (const ch of s) {\n        if (map[ch]) { if (stack.pop() !== map[ch]) return false; }\n        else stack.push(ch);\n    }\n    return stack.length === 0;\n}` },
+    { t:"Daily Temperatures", d:"medium", id:739, desc:"Монотонный стек индексов. Pop когда текущая t > t[stack[-1]]. result[prev] = i-prev.",
+      python:`def dailyTemperatures(temps):\n    n = len(temps); res = [0]*n; stack = []\n    for i in range(n):\n        while stack and temps[i] > temps[stack[-1]]:\n            p = stack.pop(); res[p] = i-p\n        stack.append(i)\n    return res`,
+      go:`func dailyTemperatures(temps []int) []int {\n    n := len(temps); res := make([]int, n); stack := []int{}\n    for i := 0; i < n; i++ {\n        for len(stack)>0 && temps[i]>temps[stack[len(stack)-1]] {\n            p := stack[len(stack)-1]; stack = stack[:len(stack)-1]\n            res[p] = i-p\n        }\n        stack = append(stack, i)\n    }\n    return res\n}`,
+      rust:`fn daily_temperatures(temps: Vec<i32>) -> Vec<i32> {\n    let n = temps.len();\n    let mut res = vec![0i32; n];\n    let mut stack: Vec<usize> = vec![];\n    for i in 0..n {\n        while let Some(&p) = stack.last() {\n            if temps[i] <= temps[p] { break; }\n            stack.pop();\n            res[p] = (i-p) as i32;\n        }\n        stack.push(i);\n    }\n    res\n}`,
+      ts:`function dailyTemperatures(temps: number[]): number[] {\n    const n = temps.length, res = new Array(n).fill(0), stack: number[] = [];\n    for (let i = 0; i < n; i++) {\n        while (stack.length && temps[i] > temps[stack[stack.length-1]]) {\n            const p = stack.pop()!; res[p] = i-p;\n        }\n        stack.push(i);\n    }\n    return res;\n}` },
+  ]},
+  { name:"Скользящее окно", icon:"⊟", problems:[
+    { t:"Longest Substring Without Repeating", d:"medium", id:3, desc:"Окно [l,r]. Хеш последней позиции. Если повтор >= l — сдвинь l.",
+      python:`def lengthOfLongestSubstring(s):\n    seen = {}; l = mx = 0\n    for r in range(len(s)):\n        if s[r] in seen and seen[s[r]] >= l:\n            l = seen[s[r]] + 1\n        seen[s[r]] = r\n        mx = max(mx, r-l+1)\n    return mx`,
+      go:`func lengthOfLongestSubstring(s string) int {\n    seen := map[byte]int{}\n    l, mx := 0, 0\n    for r := 0; r < len(s); r++ {\n        if idx, ok := seen[s[r]]; ok && idx >= l { l = idx+1 }\n        seen[s[r]] = r\n        if r-l+1 > mx { mx = r-l+1 }\n    }\n    return mx\n}`,
+      rust:`fn length_of_longest_substring(s: String) -> i32 {\n    use std::collections::HashMap;\n    let mut seen = HashMap::new();\n    let (mut l, mut mx) = (0i32, 0i32);\n    for (r, ch) in s.chars().enumerate() {\n        if let Some(&idx) = seen.get(&ch) {\n            if idx >= l { l = idx + 1; }\n        }\n        seen.insert(ch, r as i32);\n        mx = mx.max(r as i32 - l + 1);\n    }\n    mx\n}`,
+      ts:`function lengthOfLongestSubstring(s: string): number {\n    const seen = new Map<string, number>();\n    let l = 0, mx = 0;\n    for (let r = 0; r < s.length; r++) {\n        if (seen.has(s[r]) && seen.get(s[r])! >= l)\n            l = seen.get(s[r])! + 1;\n        seen.set(s[r], r);\n        mx = Math.max(mx, r-l+1);\n    }\n    return mx;\n}` },
+  ]},
+  { name:"Графы", icon:"◉", problems:[
+    { t:"Number of Islands", d:"medium", id:200, desc:"При нахождении '1' — DFS, топи остров (→ '0'). Считай запуски DFS.",
+      python:`def numIslands(grid):\n    def dfs(i,j):\n        if i<0 or i>=len(grid) or j<0 or j>=len(grid[0]) or grid[i][j]!='1': return\n        grid[i][j]='0'\n        dfs(i+1,j); dfs(i-1,j); dfs(i,j+1); dfs(i,j-1)\n    count = 0\n    for i in range(len(grid)):\n        for j in range(len(grid[0])):\n            if grid[i][j]=='1': dfs(i,j); count+=1\n    return count`,
+      go:`func numIslands(grid [][]byte) int {\n    var dfs func(int, int)\n    dfs = func(i, j int) {\n        if i<0||i>=len(grid)||j<0||j>=len(grid[0])||grid[i][j]!='1' { return }\n        grid[i][j] = '0'\n        dfs(i+1,j); dfs(i-1,j); dfs(i,j+1); dfs(i,j-1)\n    }\n    count := 0\n    for i := range grid {\n        for j := range grid[0] {\n            if grid[i][j]=='1' { dfs(i,j); count++ }\n        }\n    }\n    return count\n}`,
+      rust:`fn num_islands(grid: &mut Vec<Vec<char>>) -> i32 {\n    fn dfs(g: &mut Vec<Vec<char>>, i: i32, j: i32) {\n        if i<0||i>=g.len() as i32||j<0||j>=g[0].len() as i32 { return; }\n        let (r,c) = (i as usize, j as usize);\n        if g[r][c] != '1' { return; }\n        g[r][c] = '0';\n        dfs(g,i+1,j); dfs(g,i-1,j); dfs(g,i,j+1); dfs(g,i,j-1);\n    }\n    let mut count = 0;\n    for i in 0..grid.len() {\n        for j in 0..grid[0].len() {\n            if grid[i][j]=='1' { dfs(grid,i as i32,j as i32); count+=1; }\n        }\n    }\n    count\n}`,
+      ts:`function numIslands(grid: string[][]): number {\n    const dfs = (i: number, j: number) => {\n        if (i<0||i>=grid.length||j<0||j>=grid[0].length||grid[i][j]!=='1') return;\n        grid[i][j] = '0';\n        dfs(i+1,j); dfs(i-1,j); dfs(i,j+1); dfs(i,j-1);\n    };\n    let count = 0;\n    for (let i = 0; i < grid.length; i++)\n        for (let j = 0; j < grid[0].length; j++)\n            if (grid[i][j]==='1') { dfs(i,j); count++; }\n    return count;\n}` },
+  ]},
+  { name:"Динамическое программирование", icon:"◈", problems:[
+    { t:"Climbing Stairs", d:"easy", id:70, desc:"Фибоначчи: dp[i] = dp[i-1] + dp[i-2]. Можно через две переменные.",
+      python:`def climbStairs(n):\n    if n <= 2: return n\n    a, b = 1, 2\n    for _ in range(3, n+1): a, b = b, a+b\n    return b`,
+      go:`func climbStairs(n int) int {\n    if n <= 2 { return n }\n    a, b := 1, 2\n    for i := 3; i <= n; i++ { a, b = b, a+b }\n    return b\n}`,
+      rust:`fn climb_stairs(n: i32) -> i32 {\n    if n <= 2 { return n; }\n    let (mut a, mut b) = (1, 2);\n    for _ in 3..=n { let t = b; b += a; a = t; }\n    b\n}`,
+      ts:`function climbStairs(n: number): number {\n    if (n <= 2) return n;\n    let [a, b] = [1, 2];\n    for (let i = 3; i <= n; i++) [a, b] = [b, a+b];\n    return b;\n}` },
+    { t:"Coin Change", d:"medium", id:322, desc:"dp[x] = min(dp[x], dp[x-coin]+1). dp[0]=0, остальные ∞.",
+      python:`def coinChange(coins, amount):\n    dp = [float('inf')]*(amount+1)\n    dp[0] = 0\n    for coin in coins:\n        for x in range(coin, amount+1):\n            dp[x] = min(dp[x], dp[x-coin]+1)\n    return dp[amount] if dp[amount] != float('inf') else -1`,
+      go:`func coinChange(coins []int, amount int) int {\n    dp := make([]int, amount+1)\n    for i := range dp { dp[i] = amount+1 }\n    dp[0] = 0\n    for _, c := range coins {\n        for x := c; x <= amount; x++ {\n            if dp[x-c]+1 < dp[x] { dp[x] = dp[x-c]+1 }\n        }\n    }\n    if dp[amount] > amount { return -1 }\n    return dp[amount]\n}`,
+      rust:`fn coin_change(coins: Vec<i32>, amount: i32) -> i32 {\n    let a = amount as usize;\n    let mut dp = vec![a+1; a+1];\n    dp[0] = 0;\n    for &c in &coins {\n        let c = c as usize;\n        for x in c..=a { dp[x] = dp[x].min(dp[x-c]+1); }\n    }\n    if dp[a] > a { -1 } else { dp[a] as i32 }\n}`,
+      ts:`function coinChange(coins: number[], amount: number): number {\n    const dp = new Array(amount+1).fill(amount+1);\n    dp[0] = 0;\n    for (const c of coins)\n        for (let x = c; x <= amount; x++)\n            dp[x] = Math.min(dp[x], dp[x-c]+1);\n    return dp[amount] > amount ? -1 : dp[amount];\n}` },
+    { t:"House Robber", d:"medium", id:198, desc:"dp[i] = max(dp[i-1], dp[i-2]+nums[i]). Не грабь соседей.",
+      python:`def rob(nums):\n    if len(nums) <= 2: return max(nums)\n    dp = [0]*len(nums)\n    dp[0] = nums[0]; dp[1] = max(nums[0],nums[1])\n    for i in range(2, len(nums)):\n        dp[i] = max(dp[i-1], dp[i-2]+nums[i])\n    return dp[-1]`,
+      go:`func rob(nums []int) int {\n    if len(nums) == 1 { return nums[0] }\n    dp := make([]int, len(nums))\n    dp[0] = nums[0]\n    dp[1] = nums[0]; if nums[1] > dp[1] { dp[1] = nums[1] }\n    for i := 2; i < len(nums); i++ {\n        dp[i] = dp[i-1]\n        if dp[i-2]+nums[i] > dp[i] { dp[i] = dp[i-2]+nums[i] }\n    }\n    return dp[len(nums)-1]\n}`,
+      rust:`fn rob(nums: Vec<i32>) -> i32 {\n    let n = nums.len();\n    if n == 1 { return nums[0]; }\n    let mut dp = vec![0; n];\n    dp[0] = nums[0]; dp[1] = nums[0].max(nums[1]);\n    for i in 2..n { dp[i] = dp[i-1].max(dp[i-2]+nums[i]); }\n    dp[n-1]\n}`,
+      ts:`function rob(nums: number[]): number {\n    if (nums.length <= 2) return Math.max(...nums);\n    const dp = [nums[0], Math.max(nums[0],nums[1])];\n    for (let i = 2; i < nums.length; i++)\n        dp[i] = Math.max(dp[i-1], dp[i-2]+nums[i]);\n    return dp[nums.length-1];\n}` },
+  ]},
+  { name:"Backtracking", icon:"↩", problems:[
+    { t:"Generate Parentheses", d:"medium", id:22, desc:"Backtrack: '(' если open<n, ')' если close<open. Длина 2n — результат.",
+      python:`def generateParenthesis(n):\n    res = []\n    def bt(cur, o, c):\n        if len(cur)==2*n: res.append(cur); return\n        if o < n: bt(cur+'(', o+1, c)\n        if c < o: bt(cur+')', o, c+1)\n    bt('', 0, 0)\n    return res`,
+      go:`func generateParenthesis(n int) []string {\n    var res []string\n    var bt func(string, int, int)\n    bt = func(cur string, o, c int) {\n        if len(cur)==2*n { res = append(res, cur); return }\n        if o < n { bt(cur+"(", o+1, c) }\n        if c < o { bt(cur+")", o, c+1) }\n    }\n    bt("", 0, 0)\n    return res\n}`,
+      rust:`fn generate_parenthesis(n: i32) -> Vec<String> {\n    let mut res = vec![];\n    fn bt(cur: &mut String, o: i32, c: i32, n: i32, res: &mut Vec<String>) {\n        if cur.len() == (2*n) as usize { res.push(cur.clone()); return; }\n        if o < n { cur.push('('); bt(cur, o+1, c, n, res); cur.pop(); }\n        if c < o { cur.push(')'); bt(cur, o, c+1, n, res); cur.pop(); }\n    }\n    bt(&mut String::new(), 0, 0, n, &mut res);\n    res\n}`,
+      ts:`function generateParenthesis(n: number): string[] {\n    const res: string[] = [];\n    const bt = (cur: string, o: number, c: number) => {\n        if (cur.length === 2*n) { res.push(cur); return; }\n        if (o < n) bt(cur+'(', o+1, c);\n        if (c < o) bt(cur+')', o, c+1);\n    };\n    bt('', 0, 0);\n    return res;\n}` },
+    { t:"Permutations", d:"medium", id:46, desc:"Backtrack: бери элемент из remaining, добавь в path. Рекурсия. Pop.",
+      python:`def permute(nums):\n    res = []\n    def bt(path, rem):\n        if not rem: res.append(path[:]); return\n        for i in range(len(rem)):\n            path.append(rem[i])\n            bt(path, rem[:i]+rem[i+1:])\n            path.pop()\n    bt([], nums)\n    return res`,
+      go:`func permute(nums []int) [][]int {\n    var res [][]int\n    var bt func([]int, []int)\n    bt = func(path, rem []int) {\n        if len(rem)==0 {\n            tmp := make([]int, len(path)); copy(tmp, path)\n            res = append(res, tmp); return\n        }\n        for i := range rem {\n            nr := append(append([]int{}, rem[:i]...), rem[i+1:]...)\n            bt(append(path, rem[i]), nr)\n        }\n    }\n    bt([]int{}, nums)\n    return res\n}`,
+      rust:`fn permute(nums: Vec<i32>) -> Vec<Vec<i32>> {\n    let mut res = vec![];\n    fn bt(path: &mut Vec<i32>, rem: &[i32], res: &mut Vec<Vec<i32>>) {\n        if rem.is_empty() { res.push(path.clone()); return; }\n        for i in 0..rem.len() {\n            path.push(rem[i]);\n            let nr: Vec<i32> = rem.iter().enumerate()\n                .filter(|&(j,_)| j!=i).map(|(_,&v)| v).collect();\n            bt(path, &nr, res);\n            path.pop();\n        }\n    }\n    bt(&mut vec![], &nums, &mut res);\n    res\n}`,
+      ts:`function permute(nums: number[]): number[][] {\n    const res: number[][] = [];\n    const bt = (path: number[], rem: number[]) => {\n        if (!rem.length) { res.push([...path]); return; }\n        for (let i = 0; i < rem.length; i++) {\n            path.push(rem[i]);\n            bt(path, [...rem.slice(0,i), ...rem.slice(i+1)]);\n            path.pop();\n        }\n    };\n    bt([], nums);\n    return res;\n}` },
+  ]},
+];
+
+const LANGS = ['python','go','rust','ts'];
+const LM = { python:{l:'🐍 Py',c:'#3572A5'}, go:{l:'🐹 Go',c:'#00ADD8'}, rust:{l:'🦀 Rs',c:'#DEA584'}, ts:{l:'⬡ TS',c:'#3178C6'} };
+const DC = { easy:{bg:'#0d2818',t:'#4ade80',b:'#166534'}, medium:{bg:'#1c1708',t:'#facc15',b:'#854d0e'} };
+const SY = { keyword:'#c678dd',ident:'#e8e6e3',number:'#d19a66',string:'#98c379',op:'#888',comment:'#555' };
+
+function tokenize(code, lang) {
+  const tokens = []; let i = 0;
+  const kws = {python:['def','class','return','if','elif','else','for','while','in','not','and','or','True','False','None','import','from','break','continue','pass','lambda'],go:['func','return','if','else','for','range','var','type','struct','switch','case','default','break','continue','go','defer','select','chan','map','make','append','len','nil','true','false','const'],rust:['fn','let','mut','return','if','else','for','while','loop','in','match','struct','enum','impl','pub','use','self','Self','Some','None','Ok','Err','vec','true','false','const','unsafe','move','ref','as','where'],ts:['function','return','if','else','for','while','const','let','var','new','class','interface','type','import','export','true','false','null','undefined','void','number','string','boolean','of','in','break','continue','switch','case']};
+  const kw = kws[lang]||kws.ts;
+  while (i < code.length) {
+    if (code[i]==='\n') { tokens.push({type:'newline',value:'\n'}); i++; continue; }
+    if (code[i]===' '||code[i]==='\t') { let w=''; while(i<code.length&&(code[i]===' '||code[i]==='\t')){w+=code[i];i++;} tokens.push({type:'ws',value:w}); continue; }
+    if ((lang==='python'&&code[i]==='#')||(lang!=='python'&&code[i]==='/'&&i+1<code.length&&code[i+1]==='/')) { let c=''; while(i<code.length&&code[i]!=='\n'){c+=code[i];i++;} tokens.push({type:'comment',value:c}); continue; }
+    if (code[i]==='"'||code[i]==="'"||code[i]==='`') { const q=code[i]; let s=q; i++; while(i<code.length&&code[i]!==q){if(code[i]==='\\'){s+=code[i];i++;}s+=code[i];i++;} if(i<code.length){s+=code[i];i++;} tokens.push({type:'string',value:s}); continue; }
+    if (/[0-9]/.test(code[i])) { let n=''; while(i<code.length&&/[0-9.x]/.test(code[i])){n+=code[i];i++;} tokens.push({type:'number',value:n}); continue; }
+    if (/[a-zA-Z_]/.test(code[i])) { let w=''; while(i<code.length&&/[a-zA-Z0-9_]/.test(code[i])){w+=code[i];i++;} tokens.push({type:kw.includes(w)?'keyword':'ident',value:w}); continue; }
+    const ops=[':=','==','!=','<=','>=','+=','-=','*=','&&','||','<<','>>','<-','++','--','//','**','->','..=','..','::','=>'];
+    let found=false; for(const op of ops){if(code.substring(i,i+op.length)===op){tokens.push({type:'op',value:op});i+=op.length;found=true;break;}} if(found) continue;
+    tokens.push({type:'op',value:code[i]}); i++;
+  }
+  return tokens;
+}
+
+function createBlanks(tokens, ratio) {
+  const bl = []; tokens.forEach((t,i)=>{if(['keyword','ident','number','op','string'].includes(t.type)&&t.value.length>=1&&!['(',')','{','}','[',']',':',',','.',';','&'].includes(t.value))bl.push(i);});
+  const cnt = Math.max(1, Math.round(bl.length*ratio));
+  return new Set([...bl].sort(()=>Math.random()-0.5).slice(0,cnt));
+}
+
+function Modal({open,onClose,title,desc}) {
+  if(!open) return null;
+  return <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
+    <div onClick={e=>e.stopPropagation()} style={{background:'#16161d',border:'1px solid #2a2a35',borderRadius:12,padding:'24px 28px',maxWidth:480,width:'100%',position:'relative'}}>
+      <button onClick={onClose} style={{position:'absolute',top:12,right:16,background:'none',border:'none',color:'#666',fontSize:18,cursor:'pointer'}}>✕</button>
+      <div style={{fontSize:16,fontWeight:600,marginBottom:12,fontFamily:"'Space Grotesk',sans-serif",color:'#f0f0f0'}}>{title}</div>
+      <div style={{fontSize:13,lineHeight:1.7,color:'#aaa'}}>{desc}</div>
+    </div>
+  </div>;
+}
+
+function useM(){const[m,s]=useState(typeof window!=='undefined'&&window.innerWidth<640);if(typeof window!=='undefined'){window.onresize=()=>s(window.innerWidth<640);}return m;}
+
+function App() {
+  const mob = useM(); const px = mob?12:24;
+  const [selCat,setSelCat]=useState(null);
+  const [selP,setSelP]=useState(null);
+  const [lang,setLang]=useState('python');
+  const [mode,setMode]=useState('view');
+  const [blanks,setBlanks]=useState(new Set());
+  const [ans,setAns]=useState({});
+  const [showR,setShowR]=useState(false);
+  const [ratio,setRatio]=useState(0.3);
+  const [search,setSearch]=useState('');
+  const [done,setDone]=useState(new Set());
+  const [modal,setModal]=useState(false);
+  const refs=useRef({});
+
+  const allP=useMemo(()=>{const a=[];C.forEach(c=>c.problems.forEach(p=>a.push({...p,category:c.name,icon:c.icon})));return a;},[]);
+  const filtered=useMemo(()=>{if(!search.trim())return null;const q=search.toLowerCase();return allP.filter(p=>p.t.toLowerCase().includes(q)||p.category.toLowerCase().includes(q));},[search,allP]);
+  const code=selP?(selP[lang]||selP.python):'';
+  const tokens=useMemo(()=>code?tokenize(code,lang):[],[code,lang]);
+
+  const startP=useCallback(()=>{const t=tokenize(code,lang);const b=createBlanks(t,ratio);setBlanks(b);setAns({});setShowR(false);setMode('practice');setTimeout(()=>{const f=[...b].sort((a,b)=>a-b)[0];if(f!==undefined&&refs.current[f])refs.current[f].focus();},100);},[code,lang,ratio]);
+  const check=useCallback(()=>{setShowR(true);if([...blanks].every(i=>(ans[i]||'').trim()===tokens[i].value)&&selP)setDone(p=>new Set([...p,`${selP.category}-${selP.t}-${lang}`]));},[blanks,ans,tokens,selP,lang]);
+  const reveal=useCallback(()=>{const r={};blanks.forEach(i=>{r[i]=tokens[i].value;});setAns(r);setShowR(true);},[blanks,tokens]);
+  const onKey=useCallback((e,idx)=>{if(e.key==='Tab'||e.key==='Enter'){e.preventDefault();const s=[...blanks].sort((a,b)=>a-b);const n=s[s.indexOf(idx)+1];if(n!==undefined&&refs.current[n])refs.current[n].focus();}},[blanks]);
+  const swLang=useCallback(l=>{setLang(l);if(mode==='practice'){setMode('view');setBlanks(new Set());setAns({});setShowR(false);}},[mode]);
+
+  const FL=<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"/>;
+  const BS={minHeight:'100vh',background:'#0a0a0c',color:'#e8e6e3',fontFamily:"'JetBrains Mono','Fira Code',monospace"};
+
+  if(!selP){
+    const ec=allP.filter(p=>p.d==='easy').length,mc=allP.filter(p=>p.d==='medium').length;
+    return <div style={BS}>{FL}
+      <div style={{padding:`${mob?20:32}px ${px}px ${mob?14:20}px`,borderBottom:'1px solid #1a1a1f',background:'linear-gradient(180deg,#0f0f14,#0a0a0c)'}}>
+        <div style={{maxWidth:960,margin:'0 auto'}}>
+          <div style={{display:'flex',alignItems:'baseline',gap:12,marginBottom:8}}>
+            <span style={{fontSize:mob?22:28,fontFamily:"'Space Grotesk',sans-serif",fontWeight:700}}>leetcode<span style={{color:'#f59e0b'}}>.drill</span></span>
+            <span style={{fontSize:13,color:'#555'}}>v4</span>
+          </div>
+          <div style={{display:'flex',gap:16,fontSize:12,color:'#666',marginBottom:16,flexWrap:'wrap'}}>
+            <span>{allP.length} задач</span><span style={{color:'#4ade80'}}>{ec} easy</span><span style={{color:'#facc15'}}>{mc} medium</span><span style={{color:'#a78bfa'}}>{done.size} решено</span>
+          </div>
+          <div style={{display:'flex',gap:6,marginBottom:12,flexWrap:'wrap'}}>
+            {LANGS.map(l=><button key={l} onClick={()=>setLang(l)} style={{padding:mob?'6px 10px':'5px 14px',borderRadius:6,fontSize:12,fontFamily:'inherit',cursor:'pointer',background:lang===l?LM[l].c:'#111116',color:lang===l?'#fff':'#666',border:`1px solid ${lang===l?'transparent':'#222'}`,fontWeight:lang===l?600:400}}>{LM[l].l}</button>)}
+          </div>
+          <div style={{position:'relative'}}>
+            <input type="text" placeholder="Поиск..." value={search} onChange={e=>setSearch(e.target.value)} style={{width:'100%',padding:'10px 14px 10px 36px',background:'#111116',border:'1px solid #222',borderRadius:8,color:'#e8e6e3',fontSize:13,fontFamily:'inherit',outline:'none',boxSizing:'border-box'}}/>
+            <span style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',color:'#555'}}>⌕</span>
+          </div>
+        </div>
+      </div>
+      <div style={{maxWidth:960,margin:'0 auto',padding:`20px ${px}px`}}>
+        {filtered && filtered.length > 0 && filtered.map((p,i)=>{const d=done.has(`${p.category}-${p.t}-${lang}`);return <div key={i} onClick={()=>{setSelP(p);setMode('view');setSearch('');}} style={{padding:'10px 14px',marginBottom:4,borderRadius:6,cursor:'pointer',display:'flex',alignItems:'center',gap:10,background:'#111116',border:'1px solid #1a1a1f'}}><span style={{fontSize:14,width:20,textAlign:'center'}}>{p.icon}</span><span style={{flex:1,fontSize:13}}>{p.t}</span><span style={{fontSize:10,padding:'2px 6px',borderRadius:4,background:DC[p.d].bg,color:DC[p.d].t,border:`1px solid ${DC[p.d].b}`}}>{p.d}</span>{d&&<span style={{color:'#4ade80'}}>✓</span>}</div>})}
+        {filtered && filtered.length === 0 && <div style={{color:'#555',fontSize:13}}>Ничего не найдено</div>}
+        {!filtered && C.map((cat,ci)=><div key={ci} style={{marginBottom:20}}>
+          <div onClick={()=>setSelCat(selCat===ci?null:ci)} style={{display:'flex',alignItems:'center',gap:10,padding:'12px 0',cursor:'pointer',userSelect:'none',borderBottom:'1px solid #1a1a1f'}}>
+            <span style={{fontSize:18,width:28,textAlign:'center'}}>{cat.icon}</span>
+            <span style={{flex:1,fontSize:15,fontFamily:"'Space Grotesk',sans-serif",fontWeight:600}}>{cat.name}</span>
+            <span style={{fontSize:12,color:'#555'}}>{cat.problems.length}</span>
+            <span style={{fontSize:12,color:'#555',transform:selCat===ci?'rotate(90deg)':'none',transition:'transform 0.2s'}}>▸</span>
+          </div>
+          {selCat===ci&&<div style={{paddingLeft:mob?20:38,paddingTop:4}}>
+            {cat.problems.map((p,pi)=>{const d=done.has(`${cat.name}-${p.t}-${lang}`);return <div key={pi} onClick={()=>{setSelP({...p,category:cat.name,icon:cat.icon});setMode('view');}} style={{padding:'8px 12px',marginBottom:2,borderRadius:6,cursor:'pointer',display:'flex',alignItems:'center',gap:10}} onMouseEnter={e=>e.currentTarget.style.background='#111116'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+              <span style={{width:6,height:6,borderRadius:'50%',background:d?'#4ade80':DC[p.d].t,opacity:d?1:0.5,flexShrink:0}}/>
+              <span style={{flex:1,fontSize:13,color:d?'#888':'#ccc'}}>{p.t}</span>
+              <span style={{fontSize:10,padding:'2px 6px',borderRadius:4,background:DC[p.d].bg,color:DC[p.d].t,border:`1px solid ${DC[p.d].b}`}}>{p.d}</span>
+              {d&&<span style={{fontSize:11,color:'#4ade80'}}>✓</span>}
+            </div>})}
+          </div>}
+        </div>)}
+      </div>
+    </div>;
+  }
+
+  const cc=showR?[...blanks].filter(i=>(ans[i]||'').trim()===tokens[i].value).length:0;
+  return <div style={BS}>{FL}
+    <Modal open={modal} onClose={()=>setModal(false)} title={selP.t} desc={selP.desc}/>
+    <div style={{padding:`${mob?10:12}px ${px}px`,borderBottom:'1px solid #1a1a1f',display:'flex',alignItems:'center',gap:mob?8:12,background:'#0f0f14',position:'sticky',top:0,zIndex:10,flexWrap:'wrap'}}>
+      <button onClick={()=>{setSelP(null);setMode('view');setBlanks(new Set());setAns({});setShowR(false);}} style={{background:'none',border:'1px solid #222',borderRadius:6,color:'#888',cursor:'pointer',padding:mob?'6px 10px':'4px 10px',fontSize:12,fontFamily:'inherit'}}>←</button>
+      <span style={{fontSize:mob?12:14,flex:1,minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+        {!mob&&<span style={{color:'#555'}}>{selP.icon} {selP.category} / </span>}{selP.t}
+      </span>
+      <button onClick={()=>setModal(true)} style={{background:'#1a1a22',border:'1px solid #2a2a35',borderRadius:6,color:'#f59e0b',cursor:'pointer',padding:mob?'6px 10px':'4px 10px',fontSize:13,fontFamily:'inherit',flexShrink:0}}>💡</button>
+      <span style={{fontSize:10,padding:'2px 8px',borderRadius:4,background:DC[selP.d].bg,color:DC[selP.d].t,border:`1px solid ${DC[selP.d].b}`}}>{selP.d}</span>
+    </div>
+    <div style={{padding:`${mob?10:12}px ${px}px`,borderBottom:'1px solid #1a1a1f',display:'flex',alignItems:'center',gap:mob?5:8,flexWrap:'wrap'}}>
+      {LANGS.filter(l=>selP[l]).map(l=><button key={l} onClick={()=>swLang(l)} style={{padding:mob?'6px 8px':'4px 10px',borderRadius:5,fontSize:11,fontFamily:'inherit',cursor:'pointer',background:lang===l?LM[l].c:'#111116',color:lang===l?'#fff':'#666',border:`1px solid ${lang===l?'transparent':'#222'}`,fontWeight:lang===l?600:400}}>{LM[l].l}</button>)}
+      <div style={{width:1,height:20,background:'#222',margin:'0 2px'}}/>
+      {mode==='view'?<>
+        {[{l:'20%',v:0.2},{l:'35%',v:0.35},{l:'55%',v:0.55}].map(o=><button key={o.v} onClick={()=>setRatio(o.v)} style={{padding:mob?'6px 8px':'4px 8px',borderRadius:5,fontSize:11,fontFamily:'inherit',cursor:'pointer',background:ratio===o.v?'#f59e0b':'#111116',color:ratio===o.v?'#000':'#888',border:`1px solid ${ratio===o.v?'#f59e0b':'#222'}`,fontWeight:ratio===o.v?600:400}}>{o.l}</button>)}
+        <button onClick={startP} style={{marginLeft:'auto',padding:mob?'8px 14px':'6px 16px',borderRadius:6,fontSize:12,fontFamily:'inherit',cursor:'pointer',background:'#f59e0b',color:'#000',border:'none',fontWeight:600}}>🎲</button>
+      </>:<>
+        <span style={{fontSize:12,color:'#888'}}>{blanks.size}</span>
+        {showR&&<span style={{fontSize:12,color:cc===blanks.size?'#4ade80':'#ef4444',fontWeight:600}}>{cc}/{blanks.size}</span>}
+        <div style={{marginLeft:'auto',display:'flex',gap:6,flexWrap:'wrap'}}>
+          {!showR&&<button onClick={check} style={{padding:mob?'7px 12px':'5px 12px',borderRadius:6,fontSize:11,fontFamily:'inherit',cursor:'pointer',background:'#4ade80',color:'#000',border:'none',fontWeight:600}}>✓</button>}
+          <button onClick={reveal} style={{padding:mob?'7px 12px':'5px 12px',borderRadius:6,fontSize:11,fontFamily:'inherit',cursor:'pointer',background:'#333',color:'#ccc',border:'none'}}>👁</button>
+          <button onClick={startP} style={{padding:mob?'7px 12px':'5px 12px',borderRadius:6,fontSize:11,fontFamily:'inherit',cursor:'pointer',background:'#f59e0b',color:'#000',border:'none',fontWeight:600}}>🔄</button>
+          <button onClick={()=>{setMode('view');setBlanks(new Set());setAns({});setShowR(false);}} style={{padding:mob?'7px 12px':'5px 12px',borderRadius:6,fontSize:11,fontFamily:'inherit',cursor:'pointer',background:'#111116',color:'#888',border:'1px solid #222'}}>Код</button>
+        </div>
+      </>}
+    </div>
+    <div style={{padding:`${mob?12:20}px ${px}px`,maxWidth:960}}>
+      <pre style={{background:'#111116',border:'1px solid #1a1a1f',borderRadius:mob?8:10,padding:mob?'14px 12px':'20px 24px',margin:0,overflowX:'auto',fontSize:mob?12:13.5,lineHeight:1.7,WebkitOverflowScrolling:'touch'}}>
+        {tokens.map((t,idx)=>{
+          if(mode==='practice'&&blanks.has(idx)){const cor=tokens[idx].value,ua=ans[idx]||'';const ok=showR&&ua.trim()===cor,bad=showR&&ua.trim()!==cor;
+            return <span key={idx} style={{display:'inline-block',verticalAlign:'baseline'}}>
+              <input ref={el=>{refs.current[idx]=el;}} type="text" value={ua} onChange={e=>setAns(p=>({...p,[idx]:e.target.value}))} onKeyDown={e=>onKey(e,idx)} disabled={showR} autoCapitalize="none" autoCorrect="off" autoComplete="off" spellCheck="false" style={{width:Math.max(cor.length*(mob?9:8.5),mob?40:32),padding:mob?'3px 5px':'1px 4px',margin:'0 1px',background:ok?'#0d2818':bad?'#2a0a0a':'#1a1a22',border:`1px solid ${ok?'#166534':bad?'#7f1d1d':'#f59e0b55'}`,borderRadius:4,color:ok?'#4ade80':bad?'#ef4444':'#f59e0b',fontFamily:'inherit',fontSize:mob?14:13.5,outline:'none'}} placeholder="___"/>
+              {bad&&<span style={{fontSize:10.5,color:'#4ade80',marginLeft:2,opacity:0.8}}>{cor}</span>}
+            </span>;
+          }
+          if(t.type==='newline') return <br key={idx}/>;
+          if(t.type==='ws') return <span key={idx}>{t.value}</span>;
+          return <span key={idx} style={{color:SY[t.type]||'#888'}}>{t.value}</span>;
+        })}
+      </pre>
+    </div>
+  </div>;
+}
+
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(React.createElement(App));
+</script>
+</body>
+</html>
