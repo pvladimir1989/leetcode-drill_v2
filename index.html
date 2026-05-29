@@ -9064,7 +9064,7 @@ function App() {
         {tokens.map((t,idx)=>{
           if(mode==='practice'&&blanks.has(idx)){const cor=tokens[idx].value,ua=ans[idx]||'';const ok=showR&&ua.trim()===cor,bad=showR&&ua.trim()!==cor;
             return <span key={idx} style={{display:'inline-block',verticalAlign:'baseline'}}>
-              <input ref={el=>{refs.current[idx]=el;}} type="text" value={ua} onChange={e=>setAns(p=>({...p,[idx]:e.target.value}))} onKeyDown={e=>onKey(e,idx)} disabled={showR} autoCapitalize="none" autoCorrect="off" autoComplete="off" spellCheck="false" style={{width:`${Math.max(cor.length+1,2)}ch`,boxSizing:'content-box',padding:'0 2px 1px',margin:'0 2px',background:'transparent',border:'none',borderBottom:`2px solid ${ok?'#4ade80':bad?'#ef4444':'#f59e0b'}`,borderRadius:0,color:ok?'#4ade80':bad?'#ef4444':'#f59e0b',fontFamily:'inherit',fontSize:mob?14:13.5,outline:'none',textAlign:'center',verticalAlign:'baseline'}} placeholder="___"/>
+              <input ref={el=>{refs.current[idx]=el;}} type="text" value={ua} onChange={e=>setAns(p=>({...p,[idx]:e.target.value}))} onKeyDown={e=>onKey(e,idx)} disabled={showR} autoCapitalize="none" autoCorrect="off" autoComplete="off" spellCheck="false" style={{width:`${Math.max(cor.length+1,ua.length+1,2)}ch`,boxSizing:'content-box',padding:'0 2px 1px',margin:'0 2px',background:'transparent',border:'none',borderBottom:`2px solid ${ok?'#4ade80':bad?'#ef4444':'#f59e0b'}`,borderRadius:0,color:ok?'#4ade80':bad?'#ef4444':'#f59e0b',fontFamily:'inherit',fontSize:mob?14:13.5,outline:'none',textAlign:'center',verticalAlign:'baseline'}} placeholder="___"/>
               {bad&&<span style={{fontSize:10.5,color:'#4ade80',marginLeft:2,opacity:0.8}}>{cor}</span>}
             </span>;
           }
