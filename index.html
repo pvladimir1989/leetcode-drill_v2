@@ -50,10 +50,38 @@ function tokenize(code, lang) {
   return tokens;
 }
 
-function createBlanks(tokens, ratio) {
-  const bl = []; tokens.forEach((t,i)=>{if(['keyword','ident','number','op','string'].includes(t.type)&&t.value.length>=1&&!['(',')','{','}','[',']',':',',','.',';','&'].includes(t.value))bl.push(i);});
-  const cnt = Math.max(1, Math.round(bl.length*ratio));
-  return new Set([...bl].sort(()=>Math.random()-0.5).slice(0,cnt));
+const BL_PUNCT=['(',')','{','}','[',']',':',',','.',';','&'];
+function blEligible(t){return ['keyword','ident','number','op','string'].includes(t.type)&&t.value.length>=1&&!BL_PUNCT.includes(t.value);}
+const TH_CH=new Set(['chan','<-','close','make']);
+const TH_SYNC=new Set(['sync','WaitGroup','Mutex','RWMutex','Cond','NewCond','Add','Wait','Lock','Unlock','RLock','RUnlock','Signal','Broadcast','Once']);
+const TH_CTX=new Set(['ctx','context','WithTimeout','WithCancel','WithDeadline','Background','cancel','Deadline','TODO']);
+const TH_FLOW=new Set(['for','range','select','case','default','if','else','switch','return','go','defer','break','continue','func']);
+const W_HI=new Set(['<-','chan','select','go','defer','close','range','make','Add','Done','Wait','Lock','Unlock','RLock','RUnlock','Signal','Broadcast','WithTimeout','WithCancel','cancel','Cond']);
+const W_MID=new Set(['for','if','else','return','func','case','switch',':=','==','!=','<=','>=','%','&&','||','=','<','>']);
+function blRecv(tokens,i){let j=i-1;while(j>=0&&tokens[j].type==='ws')j--;if(j>=0&&tokens[j].value==='.'){j--;while(j>=0&&tokens[j].type==='ws')j--;if(j>=0)return tokens[j].value;}return '';}
+function blTheme(tokens,i){const v=tokens[i].value;if(v==='Done'){return /ctx|context/i.test(blRecv(tokens,i))?'ctx':'sync';}if(TH_CH.has(v))return 'ch';if(TH_SYNC.has(v))return 'sync';if(TH_CTX.has(v))return 'ctx';if(TH_FLOW.has(v))return 'flow';return 'other';}
+function blWeight(t){if(W_HI.has(t.value))return 5;if(W_MID.has(t.value))return 3;if(t.type==='keyword')return 3;return 1;}
+function blShuffle(a){for(let k=a.length-1;k>0;k--){const j=Math.floor(Math.random()*(k+1));[a[k],a[j]]=[a[j],a[k]];}return a;}
+function blWpick(arr){const tot=arr.reduce((s,x)=>s+x.w,0);let r=Math.random()*tot;for(const x of arr){r-=x.w;if(r<=0)return x;}return arr[arr.length-1];}
+function createBlanks(tokens, ratio, opts) {
+  opts=opts||{};const theme=opts.theme||'all';const gran=opts.gran||'tok';
+  const line=[];let ln=0;for(let i=0;i<tokens.length;i++){line[i]=ln;if(tokens[i].type==='newline')ln++;}
+  let cand=[];for(let i=0;i<tokens.length;i++){if(!blEligible(tokens[i]))continue;const th=blTheme(tokens,i);if(theme!=='all'&&th!==theme)continue;cand.push({idx:i,line:line[i],w:blWeight(tokens[i])});}
+  if(cand.length===0){for(let i=0;i<tokens.length;i++){if(blEligible(tokens[i]))cand.push({idx:i,line:line[i],w:blWeight(tokens[i])});}}
+  if(cand.length===0)return new Set();
+  const byLine={};cand.forEach(c=>{(byLine[c.line]=byLine[c.line]||[]).push(c);});
+  if(gran==='line'){
+    let lines=Object.keys(byLine).map(Number).sort((a,b)=>a-b);
+    const target=Math.max(1,Math.round(lines.length*ratio));
+    const chosen=new Set();
+    for(let b=0;b<target;b++){const start=Math.floor(b*lines.length/target),end=Math.max(start+1,Math.floor((b+1)*lines.length/target));const bucket=lines.slice(start,end).filter(L=>!chosen.has(L));if(bucket.length)chosen.add(bucket[Math.floor(Math.random()*bucket.length)]);}
+    const res=new Set();chosen.forEach(L=>byLine[L].forEach(c=>res.add(c.idx)));return res;
+  }
+  const target=Math.max(1,Math.round(cand.length*ratio));
+  let lines=Object.keys(byLine).map(Number);
+  const res=new Set();
+  while(res.size<target){let progressed=false;blShuffle(lines);for(const L of lines){const pool=byLine[L].filter(c=>!res.has(c.idx));if(!pool.length)continue;res.add(blWpick(pool).idx);progressed=true;if(res.size>=target)break;}if(!progressed)break;}
+  return res;
 }
 
 function Modal({open,onClose,title,desc}) {
@@ -105,6 +133,8 @@ function App() {
   const [ans,setAns]=useState({});
   const [showR,setShowR]=useState(false);
   const [ratio,setRatio]=useState(0.3);
+  const [gran,setGran]=useState('tok');
+  const [theme,setTheme]=useState('all');
   const [search,setSearch]=useState('');
   const [done,setDone]=useState(new Set());
   const [modal,setModal]=useState(false);
@@ -119,7 +149,7 @@ function App() {
   const code=selP?(selP[lang]||selP[LANGS.find(l=>selP[l])]||selP.python||''):'';
   const tokens=useMemo(()=>code?tokenize(code,lang):[],[code,lang]);
 
-  const startP=useCallback(()=>{const t=tokenize(code,lang);const b=createBlanks(t,ratio);setBlanks(b);setAns({});setShowR(false);setMode('practice');setTimeout(()=>{const f=[...b].sort((a,b)=>a-b)[0];if(f!==undefined&&refs.current[f])refs.current[f].focus();},100);},[code,lang,ratio]);
+  const startP=useCallback(()=>{const t=tokenize(code,lang);const b=createBlanks(t,ratio,{theme:lang==='go'?theme:'all',gran});setBlanks(b);setAns({});setShowR(false);setMode('practice');setTimeout(()=>{const f=[...b].sort((a,b)=>a-b)[0];if(f!==undefined&&refs.current[f])refs.current[f].focus();},100);},[code,lang,ratio,theme,gran]);
   const check=useCallback(()=>{setShowR(true);if([...blanks].every(i=>(ans[i]||'').trim()===tokens[i].value)&&selP)setDone(p=>new Set([...p,`${selP.category}-${selP.t}-${lang}`]));},[blanks,ans,tokens,selP,lang]);
   const reveal=useCallback(()=>{const r={};blanks.forEach(i=>{r[i]=tokens[i].value;});setAns(r);setShowR(true);},[blanks,tokens]);
   const onKey=useCallback((e,idx)=>{if(e.key==='Tab'||e.key==='Enter'){e.preventDefault();const s=[...blanks].sort((a,b)=>a-b);const n=s[s.indexOf(idx)+1];if(n!==undefined&&refs.current[n])refs.current[n].focus();}},[blanks]);
@@ -209,6 +239,10 @@ function App() {
       <div style={{width:1,height:20,background:'#222',margin:'0 2px'}}/>
       {mode==='view'?<>
         {[{l:'20%',v:0.2},{l:'35%',v:0.35},{l:'55%',v:0.55}].map(o=><button key={o.v} onClick={()=>setRatio(o.v)} style={{padding:mob?'6px 8px':'4px 8px',borderRadius:5,fontSize:11,fontFamily:'inherit',cursor:'pointer',background:ratio===o.v?'#f59e0b':'#111116',color:ratio===o.v?'#000':'#888',border:`1px solid ${ratio===o.v?'#f59e0b':'#222'}`,fontWeight:ratio===o.v?600:400}}>{o.l}</button>)}
+        <div style={{width:1,height:20,background:'#222',margin:'0 2px'}}/>
+        {[{k:'tok',l:'слова'},{k:'line',l:'строки'}].map(g=><button key={g.k} onClick={()=>setGran(g.k)} title={g.k==='tok'?'Пропуски по отдельным словам':'Пропуски целыми строками'} style={{padding:mob?'6px 8px':'4px 8px',borderRadius:5,fontSize:11,fontFamily:'inherit',cursor:'pointer',background:gran===g.k?'#1c1c24':'#111116',color:gran===g.k?'#a78bfa':'#888',border:`1px solid ${gran===g.k?'#a78bfa55':'#222'}`,fontWeight:gran===g.k?600:400}}>{g.l}</button>)}
+        {lang==='go'&&<React.Fragment><div style={{width:1,height:20,background:'#222',margin:'0 2px'}}/>
+        {[{k:'all',l:'Все'},{k:'ch',l:'Каналы'},{k:'sync',l:'Синхр'},{k:'ctx',l:'Контекст'},{k:'flow',l:'Поток'}].map(th=><button key={th.k} onClick={()=>setTheme(th.k)} title="Тема пропусков" style={{padding:mob?'6px 8px':'4px 8px',borderRadius:5,fontSize:11,fontFamily:'inherit',cursor:'pointer',background:theme===th.k?'#0d2818':'#111116',color:theme===th.k?'#4ade80':'#888',border:`1px solid ${theme===th.k?'#16653455':'#222'}`,fontWeight:theme===th.k?600:400}}>{th.l}</button>)}</React.Fragment>}
         <button onClick={startP} style={{marginLeft:'auto',padding:mob?'8px 14px':'6px 16px',borderRadius:6,fontSize:12,fontFamily:'inherit',cursor:'pointer',background:'#f59e0b',color:'#000',border:'none',fontWeight:600}}>🎲</button>
       </>:<>
         <span style={{fontSize:12,color:'#888'}}>{blanks.size}</span>
